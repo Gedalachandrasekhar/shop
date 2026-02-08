@@ -4,33 +4,69 @@ import Layout from '../../components/Layout';
 
 const AdminDashboard = () => {
     const [complaints, setComplaints] = useState([]);
-    const [filter, setFilter] = useState('ALL'); // Filter by status
+    const [employees, setEmployees] = useState([]);
+    const [filter, setFilter] = useState('ALL');
 
-    // Fetch all complaints on load
-    const fetchComplaints = async () => {
+    // --- FIX IS HERE: Split the calls so one failure doesn't break everything ---
+    const fetchData = async () => {
+        // 1. Fetch Complaints (Critical)
         try {
             const res = await api.get('/complaints/tickets/');
             setComplaints(res.data);
         } catch (err) {
             console.error("Failed to fetch complaints", err);
         }
+
+        // 2. Fetch Employees (Secondary)
+        try {
+            const res = await api.get('/users/employees/');
+            setEmployees(res.data);
+        } catch (err) {
+            console.error("Failed to fetch employees. Check backend/users/urls.py", err);
+        }
     };
+    // ---------------------------------------------------------------------------
 
     useEffect(() => {
-        fetchComplaints();
+        fetchData();
     }, []);
 
-    // Function to update status (e.g., Assigning a technician)
+    // Handle Status Change
     const handleStatusChange = async (id, newStatus) => {
         try {
             await api.patch(`/complaints/tickets/${id}/`, { status: newStatus });
-            fetchComplaints(); // Refresh list to show new status
+            fetchData();
         } catch (err) {
             alert("Failed to update status");
         }
     };
 
-    // Filter Logic
+    // Handle Assigning a Technician
+    const handleAssign = async (ticketId, employeeId) => {
+        if (!employeeId) return;
+
+        // Optimistic UI Update
+        setComplaints(prevComplaints =>
+            prevComplaints.map(ticket =>
+                ticket.id === ticketId
+                    ? { ...ticket, assigned_employee: parseInt(employeeId), status: 'ASSIGNED' }
+                    : ticket
+            )
+        );
+
+        // Backend Request
+        try {
+            await api.patch(`/complaints/tickets/${ticketId}/`, {
+                assigned_employee: employeeId,
+                status: 'ASSIGNED'
+            });
+        } catch (err) {
+            console.error("Assign Failed:", err.response?.data);
+            alert("Failed to assign technician.");
+            fetchData(); // Revert on error
+        }
+    };
+
     const filteredComplaints = filter === 'ALL'
         ? complaints
         : complaints.filter(c => c.status === filter);
@@ -49,8 +85,6 @@ const AdminDashboard = () => {
         <Layout>
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
-
-                {/* Filter Dropdown */}
                 <select
                     className="border p-2 rounded shadow-sm"
                     value={filter}
@@ -64,68 +98,69 @@ const AdminDashboard = () => {
                 </select>
             </div>
 
-            {/* Complaints Table */}
             <div className="overflow-x-auto bg-white shadow rounded-lg">
                 <table className="min-w-full leading-normal">
                     <thead>
                         <tr>
-                            <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                Ticket ID
-                            </th>
-                            <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                Customer / Phone
-                            </th>
-                            <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                Issue
-                            </th>
-                            <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                Type
-                            </th>
-                            <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                Status & Action
-                            </th>
+                            <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Ticket</th>
+                            <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Issue</th>
+                            <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                            <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Assign Tech</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredComplaints.map((ticket) => (
-                            <tr key={ticket.id}>
-                                <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                                    <p className="text-gray-900 whitespace-no-wrap font-bold">{ticket.ticket_id}</p>
-                                    <p className="text-gray-500 text-xs">{new Date(ticket.created_at).toLocaleDateString()}</p>
+                        {filteredComplaints.length === 0 ? (
+                            <tr>
+                                <td colSpan="4" className="text-center py-4 text-gray-500">
+                                    No complaints found (or loading...)
                                 </td>
-                                <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                                    <p className="text-gray-900 whitespace-no-wrap">{ticket.customer_phone}</p>
-                                </td>
-                                <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                                    <p className="text-gray-900 whitespace-no-wrap">{ticket.description}</p>
-                                    {ticket.address && <p className="text-xs text-gray-500">📍 {ticket.address}</p>}
-                                </td>
-                                <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                                    <span className="px-2 py-1 font-semibold leading-tight text-gray-700 bg-gray-100 rounded-full">
-                                        {ticket.type}
-                                    </span>
-                                </td>
-                                <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                                    <div className="flex flex-col gap-2">
-                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full w-fit ${getStatusColor(ticket.status)}`}>
+                            </tr>
+                        ) : (
+                            filteredComplaints.map((ticket) => (
+                                <tr key={ticket.id}>
+                                    <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                                        <p className="font-bold text-gray-900">{ticket.ticket_id}</p>
+                                        <p className="text-xs text-gray-500">{new Date(ticket.created_at).toLocaleDateString()}</p>
+                                    </td>
+                                    <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                                        <p className="text-gray-900">{ticket.description}</p>
+                                        <p className="text-xs text-gray-500">{ticket.type} • {ticket.customer_phone}</p>
+                                    </td>
+                                    <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(ticket.status)}`}>
                                             {ticket.status}
                                         </span>
-
-                                        {/* Status Changer */}
                                         <select
-                                            className="text-xs border rounded p-1"
+                                            className="block mt-1 text-xs border rounded"
                                             value={ticket.status}
                                             onChange={(e) => handleStatusChange(ticket.id, e.target.value)}
                                         >
                                             <option value="REGISTERED">Registered</option>
-                                            <option value="ASSIGNED">Assign to Tech</option>
+                                            <option value="ASSIGNED">Assigned</option>
                                             <option value="IN_PROGRESS">In Progress</option>
                                             <option value="COMPLETED">Completed</option>
                                         </select>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
+                                    </td>
+                                    <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                                        <select
+                                            className="border p-1 rounded text-sm w-full"
+                                            value={ticket.assigned_employee || ""}
+                                            onChange={(e) => handleAssign(ticket.id, e.target.value)}
+                                        >
+                                            <option value="">-- Select Tech --</option>
+                                            {employees.length > 0 ? employees.map(emp => (
+                                                <option key={emp.id} value={emp.id}>
+                                                    {emp.first_name || emp.phone} ({emp.role})
+                                                </option>
+                                            )) : <option disabled>No Techs Found</option>}
+                                        </select>
+                                        {ticket.assigned_employee && (
+                                            <p className="text-xs text-green-600 mt-1">✓ Assigned</p>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))
+                        )}
                     </tbody>
                 </table>
             </div>

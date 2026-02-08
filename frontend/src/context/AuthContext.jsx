@@ -1,7 +1,7 @@
 import { createContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
-import { jwtDecode } from "jwt-decode"; // You need to install this
+import { jwtDecode } from "jwt-decode";
 
 const AuthContext = createContext();
 
@@ -36,12 +36,22 @@ export const AuthProvider = ({ children }) => {
                     name: response.data.full_name
                 });
 
-                // Redirect based on Role
+                // --- FIX STARTS HERE ---
                 const role = response.data.role;
-                if (role === 'ADMIN') navigate('/admin');
-                else if (role === 'MANAGER') navigate('/manager');
-                else if (role === 'TECHNICIAN') navigate('/technician');
-                else navigate('/customer');
+
+                // 1. Managers & Admins share the Admin Dashboard
+                if (role === 'ADMIN' || role === 'MANAGER') {
+                    navigate('/admin');
+                }
+                // 2. Technicians & Employees share the Tech Dashboard
+                else if (role === 'TECHNICIAN' || role === 'EMPLOYEE') {
+                    navigate('/technician');
+                }
+                // 3. Everyone else is a Customer
+                else {
+                    navigate('/customer');
+                }
+                // --- FIX ENDS HERE ---
 
                 return { success: true };
             }
@@ -64,14 +74,11 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         const token = localStorage.getItem('access');
         if (token) {
-            // Ideally, you verify the token with the backend here
-            // For now, we assume if it exists, they are logged in.
-            // You can decode the token here if you want user details immediately.
             try {
+                // Validate token existence (basic check)
                 const decoded = jwtDecode(token);
-                // Note: The backend login response gave us the role,
-                // but the token payload might not have it unless we customized the token claim.
-                // For simplicity, we might fetch the profile:
+
+                // Fetch fresh profile data to ensure role is correct
                 api.get('/users/me/')
                    .then(res => setUser(res.data))
                    .catch(() => logoutUser());
