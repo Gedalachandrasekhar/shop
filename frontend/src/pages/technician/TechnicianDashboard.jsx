@@ -76,6 +76,15 @@ const markAttendance = async () => {
         }
     };
 
+const handleAttendance = async (action) => {
+        try {
+            await api.post('/attendance/mark/', { action });
+            alert(action === 'IN' ? "Checked In!" : "Checked Out!");
+        } catch (err) {
+            alert(err.response?.data?.error || "Action failed.");
+        }
+    };
+
     return (
         <Layout>
             <h1 className="text-2xl font-bold text-gray-800 mb-6">Technician Workspace</h1>
@@ -187,6 +196,26 @@ const markAttendance = async () => {
                         </div>
                     </div>
                 ))}
+            <div className="bg-white p-6 rounded shadow mb-6">
+                            <h2 className="text-xl font-bold mb-4">Daily Attendance</h2>
+                            <div className="flex gap-4">
+                                <button
+                                    onClick={() => handleAttendance('IN')}
+                                    className="flex-1 bg-green-600 text-white py-3 rounded hover:bg-green-700 font-bold"
+                                >
+                                    ☀️ Check In
+                                    <span className="block text-xs font-normal opacity-80">Opens 9:30 AM (Grace till 10:00)</span>
+                                </button>
+
+                                <button
+                                    onClick={() => handleAttendance('OUT')}
+                                    className="flex-1 bg-gray-700 text-white py-3 rounded hover:bg-gray-800 font-bold"
+                                >
+                                    🌙 Check Out
+                                    <span className="block text-xs font-normal opacity-80">Allowed after 8:30 PM</span>
+                                </button>
+                            </div>
+                        </div>
             </div>
         </Layout>
     );

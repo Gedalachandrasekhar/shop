@@ -24,16 +24,20 @@ const Sidebar = () => {
     const techLinks = [
         { name: 'My Jobs', path: '/technician' },
     ];
+const managerLinks = [
+        { name: 'Dashboard', path: '/manager' },       // His own dashboard (Attendance + Complaints)
+        { name: 'Inventory', path: '/admin/inventory' }, // Shared with Admin
+        { name: 'Timesheet', path: '/admin/timesheet' }, // Read-Only View
+        { name: 'Manage Team', path: '/admin/users' },   // Can add/remove employees
+    ];
 
     // --- FIX IS HERE ---
     // We use 'let' to allow reassignment based on role
-    let links = customerLinks; // Default to customer
+    let links = customerLinks;
 
-    if (user?.role === 'ADMIN' || user?.role === 'MANAGER') {
-        links = adminLinks;
-    } else if (user?.role === 'TECHNICIAN' || user?.role === 'EMPLOYEE') {
-        links = techLinks;
-    }
+        if (user?.role === 'ADMIN') links = adminLinks;
+        else if (user?.role === 'MANAGER') links = managerLinks; // <--- Use the new list
+        else if (user?.role === 'TECHNICIAN') links = techLinks;
     // -------------------
 
     return (

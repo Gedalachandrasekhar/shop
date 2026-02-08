@@ -36,22 +36,22 @@ export const AuthProvider = ({ children }) => {
                     name: response.data.full_name
                 });
 
-                // --- FIX STARTS HERE ---
+                // --- UPDATED REDIRECT LOGIC ---
                 const role = response.data.role;
 
-                // 1. Managers & Admins share the Admin Dashboard
-                if (role === 'ADMIN' || role === 'MANAGER') {
+                if (role === 'ADMIN') {
                     navigate('/admin');
                 }
-                // 2. Technicians & Employees share the Tech Dashboard
+                else if (role === 'MANAGER') {
+                    navigate('/manager'); // <--- FIX: Send Manager to their own Dashboard
+                }
                 else if (role === 'TECHNICIAN' || role === 'EMPLOYEE') {
                     navigate('/technician');
                 }
-                // 3. Everyone else is a Customer
                 else {
                     navigate('/customer');
                 }
-                // --- FIX ENDS HERE ---
+                // -----------------------------
 
                 return { success: true };
             }
@@ -75,10 +75,7 @@ export const AuthProvider = ({ children }) => {
         const token = localStorage.getItem('access');
         if (token) {
             try {
-                // Validate token existence (basic check)
                 const decoded = jwtDecode(token);
-
-                // Fetch fresh profile data to ensure role is correct
                 api.get('/users/me/')
                    .then(res => setUser(res.data))
                    .catch(() => logoutUser());
