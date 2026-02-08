@@ -1,7 +1,13 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
-# We added 'EmployeeListView' to the imports below
-from .views import RegisterView, CustomTokenObtainPairView, UserProfileView, EmployeeListView
+from .views import (
+    RegisterView,
+    CustomTokenObtainPairView,
+    UserProfileView,
+    EmployeeListView,
+    EmployeeCreateView,   # <--- Added this
+    EmployeeDeleteView    # <--- Added this
+)
 
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
@@ -9,6 +15,8 @@ urlpatterns = [
     path('login/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('me/', UserProfileView.as_view(), name='user_profile'),
 
-    # --- THIS WAS MISSING ---
+    # --- Employee Management ---
     path('employees/', EmployeeListView.as_view(), name='employee_list'),
+    path('employees/add/', EmployeeCreateView.as_view(), name='employee_add'),
+    path('employees/<int:pk>/', EmployeeDeleteView.as_view(), name='employee_delete'),
 ]

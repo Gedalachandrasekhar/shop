@@ -10,6 +10,8 @@ const Sidebar = () => {
         { name: 'Dashboard', path: '/admin' },
         { name: 'Inventory', path: '/admin/inventory' },
         { name: 'All Complaints', path: '/admin/complaints' },
+        { name: 'Manage Team', path: '/admin/users' },
+        { name: 'Timesheet', path: '/admin/timesheet' },
         // { name: 'Technicians', path: '/admin/users' }, // Enable if you build user management later
     ];
 

@@ -67,6 +67,14 @@ const TechnicianDashboard = () => {
             default: return 'bg-gray-100 text-gray-800';
         }
     };
+const markAttendance = async () => {
+        try {
+            await api.post('/attendance/mark/');
+            alert("Success! You are checked in.");
+        } catch (err) {
+            alert(err.response?.data?.error || "Failed to mark attendance.");
+        }
+    };
 
     return (
         <Layout>
@@ -167,6 +175,15 @@ const TechnicianDashboard = () => {
                                     ✓ Completed
                                 </div>
                             )}
+                        <div className="bg-white p-4 rounded shadow mb-6 flex justify-between items-center">
+                                <h2 className="text-xl font-bold">Daily Attendance</h2>
+                                <button
+                                    onClick={markAttendance}
+                                    className="bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700 font-bold"
+                                >
+                                    🕒 Check In (After 9:30 AM)
+                                </button>
+                            </div>
                         </div>
                     </div>
                 ))}
